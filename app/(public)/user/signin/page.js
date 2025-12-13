@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from "react";
-import { signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
+import { signInWithEmailAndPassword, setPersistence, browserSessionPersistence, signOut } from "firebase/auth";
 import { auth } from "@/app/lib/firebase";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Button, Label, TextInput, Card } from "flowbite-react";
+import { Button, Label, TextInput, Card, Alert } from "flowbite-react";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -20,12 +20,32 @@ export default function SignIn() {
 
     try {
       await setPersistence(auth, browserSessionPersistence);
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Sprawdź czy email jest zweryfikowany
+      if (!userCredential.user.emailVerified) {
+        // Wyloguj użytkownika
+        await signOut(auth);
+        // Przekieruj do strony weryfikacji
+        router.push("/user/verify");
+        return;
+      }
       
       // Przekierowanie do returnUrl lub strony głównej
       router.push(returnUrl || "/");
     } catch (err) {
-      setError("Błąd logowania: " + err.message);
+      // Obsługa błędów logowania
+      if (err.code === "auth/user-not-found") {
+        setError("Nie znaleziono użytkownika o podanym adresie email!");
+      } else if (err.code === "auth/wrong-password") {
+        setError("Nieprawidłowe hasło!");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Nieprawidłowy format adresu email!");
+      } else if (err.code === "auth/user-disabled") {
+        setError("To konto zostało zablokowane!");
+      } else {
+        setError("Błąd logowania: " + err.message);
+      }
     }
   };
 
@@ -33,7 +53,7 @@ export default function SignIn() {
     <div className="flex justify-center items-center min-h-[80vh]">
       <Card className="w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4">Logowanie</h2>
-        
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <Label htmlFor="email" value="Email" />
@@ -59,10 +79,11 @@ export default function SignIn() {
             />
           </div>
 
+          {/* Alert z błędem */}
           {error && (
-            <div className="text-red-600 text-sm bg-red-50 p-3 rounded">
-              {error}
-            </div>
+            <Alert color="failure">
+              <span className="font-medium">Błąd!</span> {error}
+            </Alert>
           )}
 
           <Button type="submit" color="blue">

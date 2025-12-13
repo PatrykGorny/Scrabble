@@ -24,21 +24,7 @@ export default function Sidebar() {
 
         {!user ? (
           <>
-            <Link 
-              href="/user/signin" 
-              className="flex items-center gap-3 p-3 rounded hover:bg-gray-700 transition"
-            >
-              <FaSignInAlt size={20} />
-              <span>Logowanie</span>
-            </Link>
-
-            <Link 
-              href="/user/register" 
-              className="flex items-center gap-3 p-3 rounded hover:bg-gray-700 transition"
-            >
-              <FaUserPlus size={20} />
-              <span>Rejestracja</span>
-            </Link>
+           
           </>
         ) : (
           <>
@@ -58,13 +44,6 @@ export default function Sidebar() {
               <span>Zmień hasło</span>
             </Link>
 
-            <Link 
-              href="/user/signout" 
-              className="flex items-center gap-3 p-3 rounded hover:bg-gray-700 transition"
-            >
-              <FaSignOutAlt size={20} />
-              <span>Wyloguj</span>
-            </Link>
           </>
         )}
       </nav>
