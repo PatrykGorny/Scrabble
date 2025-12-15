@@ -6,17 +6,19 @@ import { useAuth } from "@/app/lib/AuthContext";
 import { db } from "@/app/lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { Button, Label, TextInput, Card, Alert, Spinner } from "flowbite-react";
+import Link from "next/link";
+import { FaKey, FaSave } from "react-icons/fa";
 
 export default function ProfileForm() {
   const { user } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [photoURL, setPhotoURL] = useState("");
-  
+
   // Pola adresowe
   const [city, setCity] = useState("");
   const [street, setStreet] = useState("");
   const [zipCode, setZipCode] = useState("");
-  
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export default function ProfileForm() {
         try {
           const docRef = doc(db, "users", user.uid);
           const snapshot = await getDoc(docRef);
-          
+
           if (snapshot.exists()) {
             const data = snapshot.data();
             if (data.address) {
@@ -71,8 +73,8 @@ export default function ProfileForm() {
         address: {
           city: city,
           street: street,
-          zipCode: zipCode
-        }
+          zipCode: zipCode,
+        },
       });
 
       setSuccess("Profil został zaktualizowany!");
@@ -150,6 +152,16 @@ export default function ProfileForm() {
             />
           </div>
 
+          <Link href="/user/changepassword">
+            <Button
+              color="gray"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <FaKey size={16} />
+              Zmień hasło
+            </Button>
+          </Link>
+
           {/* Sekcja adresu */}
           <div className="border-t pt-4 mt-2">
             <h3 className="text-lg font-semibold mb-3">Adres</h3>
@@ -202,9 +214,16 @@ export default function ProfileForm() {
             </Alert>
           )}
 
-          <Button type="submit" color="blue">
-            Zaktualizuj profil
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              type="submit"
+              color="blue"
+              className="flex items-center justify-center gap-2"
+            >
+              <FaSave size={16} />
+              Zaktualizuj profil
+            </Button>
+          </div>
         </form>
       </Card>
     </div>

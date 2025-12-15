@@ -10,6 +10,8 @@ import {
 import { auth } from "@/app/lib/firebase";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button, Label, TextInput, Card, Alert } from "flowbite-react";
+import { FaSignInAlt } from "react-icons/fa";
+import Link from "next/link";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -69,6 +71,7 @@ export default function SignIn() {
               aria-label="email"
               vaule={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Wpisz swój email"
               required
             />
           </div>
@@ -81,6 +84,7 @@ export default function SignIn() {
               aria-label="Hasło"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Wpisz swoje hasło"
               required
             />
           </div>
@@ -91,9 +95,24 @@ export default function SignIn() {
             </Alert>
           )}
 
-          <Button type="submit" color="blue" data-testid="login-submit">
+          <Button
+            type="submit"
+            color="blue"
+            data-testid="login-submit"
+            className="flex items-center justify-center gap-2"
+          >
+            <FaSignInAlt size={16} />
             Zaloguj się
           </Button>
+          <p className="mt-6 text-center text-gray-600 dark:text-gray-400">
+            Nie masz konta ?{" "}
+            <Link
+              href="/user/register"
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+            >
+              Zarejestruj się
+            </Link>
+          </p>
         </form>
       </Card>
     </div>

@@ -3,25 +3,36 @@
 import Link from "next/link";
 import { useAuth } from "@/app/lib/AuthContext";
 import { Button } from "flowbite-react";
+import { FaSignInAlt, FaUserPlus, FaSignOutAlt } from "react-icons/fa";
 
 export default function TopBar() {
   const { user } = useAuth();
 
   return (
-    <header className="bg-white shadow-sm p-4">
+    <header className="bg-gray-800 text-white shadow-sm p-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-800"> Scrabble </h1>
+        <h1 className="text-xl font-bold"> Scrabble </h1>
 
         <div className="flex gap-3 items-center">
           {!user ? (
             <>
               <Link href="/user/signin">
-                <Button color="blue" size="sm">
+                <Button
+                  color="blue"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <FaSignInAlt size={14} />
                   Zaloguj się
                 </Button>
               </Link>
               <Link href="/user/register">
-                <Button color="gray" size="sm">
+                <Button
+                  color="gray"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <FaUserPlus size={14} />
                   Zarejestruj się
                 </Button>
               </Link>
@@ -40,11 +51,16 @@ export default function TopBar() {
                   {user.email?.[0].toUpperCase()}
                 </div>
               )}
-              <span className="text-gray-600">
+              <span className="text-white">
                 Witaj, {user.displayName || user.email}
               </span>
               <Link href="/user/signout">
-                <Button color="failure" size="sm">
+                <Button
+                  color="failure"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <FaSignOutAlt size={14} />
                   Wyloguj
                 </Button>
               </Link>

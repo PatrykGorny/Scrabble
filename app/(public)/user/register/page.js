@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
 import { auth } from "@/app/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/lib/AuthContext";
 import { Button, Label, TextInput, Card, Alert } from "flowbite-react";
+import { FaUserPlus } from "react-icons/fa";
+import Link from "next/link";
 
 export default function RegisterForm() {
   const { user } = useAuth();
@@ -36,13 +41,17 @@ export default function RegisterForm() {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       console.log("User registered!");
-      
+
       // Wysłanie emaila weryfikacyjnego
       await sendEmailVerification(userCredential.user);
       console.log("Email verification sent!");
-      
+
       // Przekierowanie do strony weryfikacji
       router.push("/user/verify");
     } catch (error) {
@@ -73,6 +82,7 @@ export default function RegisterForm() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="Wpisz swój email"
               required
             />
           </div>
@@ -84,6 +94,7 @@ export default function RegisterForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Wpisz hasło"
               required
             />
           </div>
@@ -95,6 +106,7 @@ export default function RegisterForm() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Powtórz hasło"
               required
             />
           </div>
@@ -106,10 +118,24 @@ export default function RegisterForm() {
             </Alert>
           )}
 
-          <Button type="submit" color="blue">
+          <Button
+            type="submit"
+            color="blue"
+            className="flex items-center justify-center gap-2"
+          >
+            <FaUserPlus size={16} />
             Zarejestruj się
           </Button>
         </form>
+        <p className="mt-6 text-center text-gray-600 dark:text-gray-400">
+          Masz już konto?{" "}
+          <Link
+            href="/user/signin"
+            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          >
+            Zaloguj się
+          </Link>
+        </p>
       </Card>
     </div>
   );
