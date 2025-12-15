@@ -115,11 +115,6 @@ Run the test suite:
 npx playwright test
 ```
 
-Run tests in UI mode:
-
-```bash
-npx playwright test --ui
-```
 
 ## Contributing
 
@@ -143,5 +138,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Based on traditional Scrabble game rules
-- Adapted for Polish language by [Your Name]
+- Adapted for Polish language
 - Built with modern web technologies
