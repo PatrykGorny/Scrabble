@@ -17,17 +17,15 @@ export default function RootLayout({ children }) {
           <div className="flex min-h-screen">
             {/* Sidebar po lewej stronie */}
             <Sidebar />
-            
+
             {/* Główna zawartość */}
             <div className="flex flex-col flex-1">
               {/* Górny pasek */}
               <TopBar />
-              
+
               {/* Treść strony */}
-              <main className="flex-1 p-6 bg-gray-50">
-                {children}
-              </main>
-              
+              <main className="flex-1 p-2 bg-gray-900">{children}</main>
+
               {/* Stopka */}
               <Footer />
             </div>

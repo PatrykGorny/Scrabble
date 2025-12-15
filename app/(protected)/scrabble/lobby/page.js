@@ -20,12 +20,13 @@ import { useRouter } from "next/navigation";
 import { Card, Button, Spinner, Badge, TextInput, Label } from "flowbite-react";
 
 export default function ScrabbleLobby() {
-  const { user, nickname } = useAuth();
+  const { user, displayName } = useAuth();
   const router = useRouter();
   const [lobbies, setLobbies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [lobbyName, setLobbyName] = useState("");
+  const [isInGame, setIsInGame] = useState(false);
 
   // Subskrypcja do lobbies
   useEffect(() => {
@@ -43,16 +44,48 @@ export default function ScrabbleLobby() {
     return () => unsubscribe();
   }, []);
 
+  // Sprawdź czy użytkownik jest w grze
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, "lobbies"),
+      where("players", "array-contains", { uid: user.uid }),
+      where("status", "==", "playing")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setIsInGame(!snapshot.empty);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   // Tworzenie lobby
   const createLobby = async () => {
     if (!lobbyName.trim()) return;
+    if (isInGame) {
+      alert("Jesteś już w grze. Nie możesz utworzyć nowego lobby.");
+      return;
+    }
 
     try {
+      // Sprawdź czy nazwa lobby już istnieje
+      const q = query(
+        collection(db, "lobbies"),
+        where("name", "==", lobbyName.trim())
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        alert("Lobby o tej nazwie już istnieje! Wybierz inną nazwę.");
+        return;
+      }
+
       const lobbyRef = await addDoc(collection(db, "lobbies"), {
         name: lobbyName,
         ownerId: user.uid,
-        ownerNickname: nickname,
-        players: [{ uid: user.uid, nickname: nickname, ready: true }],
+        ownerDisplayName: displayName,
+        players: [{ uid: user.uid, displayName: displayName, ready: true }],
         maxPlayers: 4,
         status: "waiting",
         createdAt: serverTimestamp(),
@@ -69,6 +102,10 @@ export default function ScrabbleLobby() {
 
   // Dołączanie do lobby
   const joinLobby = async (lobby) => {
+    if (isInGame) {
+      alert("Jesteś już w grze. Nie możesz dołączyć do innego lobby.");
+      return;
+    }
     if (lobby.players.length >= lobby.maxPlayers) {
       alert("Lobby jest pełne!");
       return;
@@ -81,7 +118,11 @@ export default function ScrabbleLobby() {
 
     try {
       await updateDoc(doc(db, "lobbies", lobby.id), {
-        players: arrayUnion({ uid: user.uid, nickname: nickname, ready: false }),
+        players: arrayUnion({
+          uid: user.uid,
+          displayName: displayName,
+          ready: false,
+        }),
       });
       router.push(`/scrabble/lobby/${lobby.id}`);
     } catch (err) {
@@ -102,7 +143,11 @@ export default function ScrabbleLobby() {
     <div className="max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Scrabble - Lobby</h1>
-        <Button color="blue" onClick={() => setShowCreateForm(!showCreateForm)}>
+        <Button
+          color="blue"
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          disabled={isInGame}
+        >
           {showCreateForm ? "Anuluj" : "Utwórz Lobby"}
         </Button>
       </div>
@@ -143,7 +188,7 @@ export default function ScrabbleLobby() {
                 <div>
                   <h3 className="text-xl font-bold">{lobby.name}</h3>
                   <p className="text-sm text-gray-600">
-                    Właściciel: {lobby.ownerNickname}
+                    Właściciel: {lobby.ownerDisplayName || lobby.ownerNickname}
                   </p>
                 </div>
                 <Badge
@@ -160,7 +205,7 @@ export default function ScrabbleLobby() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {lobby.players.map((player, idx) => (
                     <Badge key={idx} color="gray">
-                      {player.nickname}
+                      {player.displayName || player.nickname || player.uid}
                     </Badge>
                   ))}
                 </div>
@@ -170,6 +215,7 @@ export default function ScrabbleLobby() {
                 color="blue"
                 onClick={() => joinLobby(lobby)}
                 disabled={
+                  isInGame ||
                   lobby.status !== "waiting" ||
                   lobby.players.length >= lobby.maxPlayers
                 }

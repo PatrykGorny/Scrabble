@@ -13,9 +13,10 @@ import {
 } from "firebase/firestore";
 import { useRouter, useParams } from "next/navigation";
 import { Card, Button, Spinner, Badge } from "flowbite-react";
+import { createTileBag, drawTiles } from "@/app/lib/scrabble";
 
 export default function LobbyDetail() {
-  const { user, nickname } = useAuth();
+  const { user, displayName } = useAuth();
   const router = useRouter();
   const { id } = useParams();
   const [lobby, setLobby] = useState(null);
@@ -41,8 +42,9 @@ export default function LobbyDetail() {
   const toggleReady = async () => {
     if (!lobby || !user) return;
 
-    const isReady = lobby.players.find(p => p.uid === user.uid)?.ready || false;
-    const updatedPlayers = lobby.players.map(p =>
+    const isReady =
+      lobby.players.find((p) => p.uid === user.uid)?.ready || false;
+    const updatedPlayers = lobby.players.map((p) =>
       p.uid === user.uid ? { ...p, ready: !isReady } : p
     );
 
@@ -58,31 +60,37 @@ export default function LobbyDetail() {
   const startGame = async () => {
     if (!lobby || lobby.ownerId !== user.uid) return;
 
-    // Potwierdzenie
-    if (!window.confirm("Czy na pewno chcesz rozpocząć grę? Wszyscy gracze muszą być gotowi.")) return;
+    if (
+      !window.confirm(
+        "Czy na pewno chcesz rozpocząć grę? Wszyscy gracze muszą być gotowi."
+      )
+    )
+      return;
 
-    // Sprawdź czy wszyscy są gotowi (tylko jeśli więcej niż 1 gracz)
-    const allReady = lobby.players.every(p => p.ready);
+    const allReady = lobby.players.every((p) => p.ready);
     if (lobby.players.length > 1 && !allReady) {
       alert("Nie wszyscy gracze są gotowi!");
       return;
     }
 
     try {
-      // Inicjalizuj grę
+      let bag = createTileBag();
+      const playerTiles = lobby.players.map((p) => {
+        const { drawn: tiles, newBag } = drawTiles(bag, 7);
+        bag = newBag;
+        return { uid: p.uid, tiles };
+      });
+
       const gameData = {
         lobbyId: id,
         players: lobby.players,
         currentPlayer: 0,
-        board: {}, // Pusta plansza jako object, klucze "x-y"
-        scores: lobby.players.map(p => ({ uid: p.uid, score: 0 })),
+        board: {},
+        scores: lobby.players.map((p) => ({ uid: p.uid, score: 0 })),
         status: "playing",
         startedAt: serverTimestamp(),
-        // Losuj 7 liter dla każdego gracza z polskiego alfabetu
-        playerTiles: lobby.players.map(p => ({
-          uid: p.uid,
-          tiles: drawTiles(7)
-        })),
+        playerTiles,
+        remainingTiles: bag,
         moves: [],
       };
 
@@ -101,37 +109,26 @@ export default function LobbyDetail() {
   const leaveLobby = async () => {
     if (!lobby || !user) return;
 
-    const updatedPlayers = lobby.players.filter(p => p.uid !== user.uid);
+    const updatedPlayers = lobby.players.filter((p) => p.uid !== user.uid);
 
     try {
-      if (updatedPlayers.length === 0) {
-        // Jeśli ostatni gracz, usuń lobby
-        await deleteDoc(doc(db, "lobbies", id));
-        router.push("/scrabble/lobby");
-      } else {
-        // Jeśli właściciel wychodzi, przekaż własność pierwszemu graczowi
-        let updateData = { players: updatedPlayers };
-        if (lobby.ownerId === user.uid) {
-          updateData.ownerId = updatedPlayers[0].uid;
-          updateData.ownerNickname = updatedPlayers[0].nickname;
-        }
-        await updateDoc(doc(db, "lobbies", id), updateData);
-        router.push("/scrabble/lobby");
-      }
+      let updateData = { players: updatedPlayers };
+      await updateDoc(doc(db, "lobbies", id), updateData);
+      router.push("/scrabble/lobby");
     } catch (err) {
       console.error("Error leaving lobby:", err);
     }
   };
 
-  // Funkcja do losowania liter z polskiego alfabetu
-  const drawTiles = (count) => {
-    const polishAlphabet = "AĄBCĆDEĘFGHIJKLŁMNŃOÓPQRSŚTUVWXYZŻŹ";
-    const tiles = [];
-    for (let i = 0; i < count; i++) {
-      const randomIndex = Math.floor(Math.random() * polishAlphabet.length);
-      tiles.push(polishAlphabet[randomIndex]);
+  const deleteLobby = async () => {
+    if (!lobby || lobby.ownerId !== user.uid) return;
+
+    try {
+      await deleteDoc(doc(db, "lobbies", id));
+      router.push("/scrabble/lobby");
+    } catch (err) {
+      console.error("Error deleting lobby:", err);
     }
-    return tiles;
   };
 
   if (loading) {
@@ -145,27 +142,34 @@ export default function LobbyDetail() {
   if (!lobby) return null;
 
   const isOwner = lobby.ownerId === user.uid;
-  const currentPlayer = lobby.players.find(p => p.uid === user.uid);
+  const currentPlayer = lobby.players.find((p) => p.uid === user.uid);
   const isReady = currentPlayer?.ready || false;
 
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Lobby: {lobby.name}</h1>
-        <Button color="red" onClick={leaveLobby}>
-          Opuść Lobby
+        <Button color="red" onClick={isOwner ? deleteLobby : leaveLobby}>
+          {isOwner ? "Usuń Lobby" : "Opuść Lobby"}
         </Button>
       </div>
 
       <Card className="mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-xl font-bold mb-4">Gracze ({lobby.players.length}/{lobby.maxPlayers})</h3>
+            <h3 className="text-xl font-bold mb-4">
+              Gracze ({lobby.players.length}/{lobby.maxPlayers})
+            </h3>
             <div className="space-y-2">
               {lobby.players.map((player, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 bg-gray-700 rounded"
+                >
                   <div className="flex items-center gap-3">
-                    <span className="font-medium">{player.nickname}</span>
+                    <span className="font-medium">
+                      {player.displayName || player.nickname || player.uid}
+                    </span>
                     {lobby.ownerId === player.uid && (
                       <Badge color="blue">Właściciel</Badge>
                     )}
@@ -183,7 +187,9 @@ export default function LobbyDetail() {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-600">Status lobby:</p>
-                <Badge color={lobby.status === "waiting" ? "success" : "warning"}>
+                <Badge
+                  color={lobby.status === "waiting" ? "success" : "warning"}
+                >
                   {lobby.status === "waiting" ? "Oczekuje na graczy" : "W grze"}
                 </Badge>
               </div>
@@ -202,7 +208,11 @@ export default function LobbyDetail() {
                 <Button
                   color="blue"
                   onClick={startGame}
-                  disabled={lobby.players.length < 1 || (lobby.players.length > 1 && !lobby.players.every(p => p.ready))}
+                  disabled={
+                    lobby.players.length < 1 ||
+                    (lobby.players.length > 1 &&
+                      !lobby.players.every((p) => p.ready))
+                  }
                   className="w-full"
                 >
                   Rozpocznij Grę

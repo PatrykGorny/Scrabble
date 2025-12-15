@@ -10,50 +10,89 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [nickname, setNickname] = useState(null);
+  const [displayName, setDisplayName] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
-        fetchNickname(user.uid);
+        fetchDisplayName(user);
       } else {
-        setNickname(null);
+        setDisplayName(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  const fetchNickname = async (uid) => {
+  const fetchDisplayName = async (user) => {
     try {
-      const userDoc = await getDoc(doc(db, "users", uid));
+      const uid = user.uid;
+      const userDocRef = doc(db, "users", uid);
+      const userDoc = await getDoc(userDocRef);
+
+      // Priority: auth.displayName > firestore.displayName > firestore.nickname (backwards compat) > random
+      if (user.displayName) {
+        // ensure stored
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.displayName !== user.displayName) {
+            await setDoc(
+              userDocRef,
+              { displayName: user.displayName },
+              { merge: true }
+            );
+          }
+        } else {
+          await setDoc(userDocRef, { displayName: user.displayName });
+        }
+        setDisplayName(user.displayName);
+        return;
+      }
+
       if (userDoc.exists()) {
         const data = userDoc.data();
-        setNickname(data.nickname || generateRandomNickname());
+        const name =
+          data.displayName || data.nickname || generateRandomNickname();
+        if (!data.displayName) {
+          await setDoc(userDocRef, { displayName: name }, { merge: true });
+        }
+        setDisplayName(name);
       } else {
-        const randomNick = generateRandomNickname();
-        await setDoc(doc(db, "users", uid), { nickname: randomNick });
-        setNickname(randomNick);
+        const randomName = generateRandomNickname();
+        await setDoc(userDocRef, { displayName: randomName });
+        setDisplayName(randomName);
       }
     } catch (err) {
-      console.error("Error fetching nickname:", err);
-      setNickname(generateRandomNickname());
+      console.error("Error fetching displayName:", err);
+      setDisplayName(generateRandomNickname());
     }
   };
 
-  const updateNickname = async (newNickname) => {
+  const updateDisplayName = async (newDisplayName) => {
     if (!user) return;
     try {
-      await setDoc(doc(db, "users", user.uid), { nickname: newNickname }, { merge: true });
-      setNickname(newNickname);
+      await setDoc(
+        doc(db, "users", user.uid),
+        { displayName: newDisplayName },
+        { merge: true }
+      );
+      setDisplayName(newDisplayName);
     } catch (err) {
-      console.error("Error updating nickname:", err);
+      console.error("Error updating displayName:", err);
     }
   };
 
   const generateRandomNickname = () => {
-    const adjectives = ["Szybki", "Mądry", "Śmiały", "Cichy", "Głośny", "Zielony", "Niebieski"];
+    const adjectives = [
+      "Szybki",
+      "Mądry",
+      "Śmiały",
+      "Cichy",
+      "Głośny",
+      "Zielony",
+      "Niebieski",
+    ];
     const nouns = ["Lis", "Wilk", "Orzeł", "Kot", "Pies", "Słoń", "Lew"];
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
@@ -62,7 +101,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, nickname, updateNickname }}>
+    <AuthContext.Provider
+      value={{ user, loading, displayName, updateDisplayName }}
+    >
       {children}
     </AuthContext.Provider>
   );

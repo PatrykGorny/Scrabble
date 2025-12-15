@@ -7,43 +7,7 @@ import { doc, onSnapshot, updateDoc, deleteDoc } from "firebase/firestore";
 import { useRouter, useParams } from "next/navigation";
 import { Card, Button, Spinner, Badge } from "flowbite-react";
 import ScrabbleBoard from "@/app/components/ScrabbleBoard";
-
-// 1. Definicja polskiego rozkładu liter i punktacji
-const TILE_CONFIG = {
-  A: { count: 9, points: 1 },
-  Ą: { count: 1, points: 5 },
-  B: { count: 2, points: 3 },
-  C: { count: 3, points: 2 },
-  Ć: { count: 1, points: 6 },
-  D: { count: 3, points: 2 },
-  E: { count: 7, points: 1 },
-  Ę: { count: 1, points: 5 },
-  F: { count: 1, points: 5 },
-  G: { count: 2, points: 3 },
-  H: { count: 2, points: 3 },
-  I: { count: 8, points: 1 },
-  J: { count: 2, points: 3 },
-  K: { count: 3, points: 2 },
-  L: { count: 3, points: 2 },
-  Ł: { count: 2, points: 3 },
-  M: { count: 3, points: 2 },
-  N: { count: 5, points: 1 },
-  Ń: { count: 1, points: 7 },
-  O: { count: 6, points: 1 },
-  Ó: { count: 1, points: 5 },
-  P: { count: 3, points: 2 },
-  R: { count: 4, points: 1 },
-  S: { count: 4, points: 1 },
-  Ś: { count: 1, points: 5 },
-  T: { count: 3, points: 2 },
-  U: { count: 2, points: 3 },
-  W: { count: 4, points: 1 },
-  Y: { count: 4, points: 2 },
-  Z: { count: 5, points: 1 },
-  Ż: { count: 1, points: 5 },
-  Ź: { count: 1, points: 9 },
-  _: { count: 2, points: 0 }, // Blanki (opcjonalnie)
-};
+import { POLISH_TILES, drawTiles } from "@/app/lib/scrabble";
 
 export default function ScrabbleGame() {
   const { user } = useAuth();
@@ -66,22 +30,6 @@ export default function ScrabbleGame() {
           return;
         }
 
-        // Inicjalizacja worka liter, jeśli go nie ma
-        if (!data.gameData.remainingTiles) {
-          const initialBag = [];
-          Object.entries(TILE_CONFIG).forEach(([letter, config]) => {
-            for (let i = 0; i < config.count; i++) initialBag.push(letter);
-          });
-          // Mieszanie
-          for (let i = initialBag.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [initialBag[i], initialBag[j]] = [initialBag[j], initialBag[i]];
-          }
-          // Uwaga: To jest optymalne, jeśli plansza jest tworzona po raz pierwszy
-          // Możesz usunąć ten updateDoc po wdrożeniu pełnej logiki startu gry
-          updateDoc(lobbyRef, { "gameData.remainingTiles": initialBag });
-        }
-
         setLobby({ id: docSnap.id, ...data });
       } else {
         alert("Gra nie istnieje!");
@@ -95,7 +43,6 @@ export default function ScrabbleGame() {
   // --- LOGIKA GRY (NIEZMIENIONA W STOSUNKU DO POPRZEDNIEJ ODPOWIEDZI) ---
 
   const validateWordInDictionary = async (word) => {
-    // Placeholder - zastąp przez API słownika
     console.log(`Sprawdzam w słowniku: ${word}`);
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -107,20 +54,9 @@ export default function ScrabbleGame() {
 
   const calculatePoints = (tiles) => {
     return tiles.reduce(
-      (sum, tile) => sum + (TILE_CONFIG[tile.letter]?.points || 0),
+      (sum, tile) => sum + (POLISH_TILES[tile.letter]?.points || 0),
       0
     );
-  };
-
-  const drawTilesFromBag = (currentBag, countNeeded) => {
-    if (!currentBag || currentBag.length === 0)
-      return { newTiles: [], updatedBag: [] };
-
-    const tilesToDraw = Math.min(countNeeded, currentBag.length);
-    const newTiles = currentBag.slice(0, tilesToDraw);
-    const updatedBag = currentBag.slice(tilesToDraw);
-
-    return { newTiles, updatedBag };
   };
 
   const submitMove = async () => {
@@ -141,8 +77,8 @@ export default function ScrabbleGame() {
     for (const [letter, countNeeded] of Object.entries(moveCounts)) {
       const countInHand = playerTiles.filter((t) => t === letter).length;
       if (countInHand < countNeeded) {
-        alert(
-          `Błąd: Użyłeś litery "${letter}" ${countNeeded} razy, a masz ją tylko ${countInHand} razy. Nie możesz przekroczyć limitu liter!`
+        console.warn(
+          `Attempted to use letter "${letter}" ${countNeeded} times but have only ${countInHand} in hand.`
         );
         setIsValidating(false);
         return;
@@ -160,7 +96,7 @@ export default function ScrabbleGame() {
     }
 
     // C. Walidacja słownikowa
-    const pseudoWord = currentMove.map((t) => t.letter).join(""); // Uproszczenie!
+    const pseudoWord = currentMove.map((t) => t.letter).join("");
     const isWordValid = await validateWordInDictionary(pseudoWord);
 
     if (!isWordValid) {
@@ -187,15 +123,30 @@ export default function ScrabbleGame() {
 
     // Dobierz nowe z worka
     const needed = 7 - updatedPlayerTiles.length;
-    const { newTiles, updatedBag } = drawTilesFromBag(
-      remainingTilesBag,
-      needed
-    );
-    updatedPlayerTiles = [...updatedPlayerTiles, ...newTiles];
+    let updatedBag = gameData.remainingTiles;
+    if (needed > 0) {
+      const { drawn, newBag } = drawTiles(gameData.remainingTiles, needed);
+      updatedPlayerTiles = [...updatedPlayerTiles, ...drawn];
+      updatedBag = newBag;
+    }
 
     const updatedScores = gameData.scores.map((s) =>
       s.uid === user.uid ? { ...s, score: s.score + points } : s
     );
+
+    // Sprawdź czy gra się kończy (worek pusty i gracz nie ma 7 liter)
+    let gameStatus = "playing";
+    let winner = null;
+    const totalRemaining = Object.values(updatedBag).reduce(
+      (sum, c) => sum + c,
+      0
+    );
+    if (totalRemaining === 0 && updatedPlayerTiles.length < 7) {
+      gameStatus = "ended";
+      winner = updatedScores.reduce((prev, current) =>
+        prev.score > current.score ? prev : current
+      );
+    }
 
     const newMoveEntry = {
       player: user.uid,
@@ -217,6 +168,8 @@ export default function ScrabbleGame() {
         ),
         "gameData.currentPlayer":
           (gameData.currentPlayer + 1) % lobby.players.length,
+        "gameData.status": gameStatus,
+        ...(winner && { "gameData.winner": winner }),
       });
       setCurrentMove([]);
     } catch (err) {
@@ -254,7 +207,7 @@ export default function ScrabbleGame() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+      <div className="flex justify-center items-center  bg-gray-900 text-white">
         <Spinner size="xl" color="info" />
       </div>
     );
@@ -263,11 +216,39 @@ export default function ScrabbleGame() {
   if (!lobby) return null;
 
   const gameData = lobby.gameData;
+
+  if (gameData.status === "ended") {
+    const winner = gameData.winner;
+    const winnerPlayer = lobby.players.find((p) => p.uid === winner.uid);
+    const winnerName = winnerPlayer
+      ? winnerPlayer.displayName || winnerPlayer.nickname || winnerPlayer.uid
+      : winner.uid;
+    return (
+      <div className=" bg-gray-900 text-gray-100  flex items-center justify-center">
+        <Card className="bg-gray-800 border-gray-700 max-w-md w-full">
+          <h2 className="text-2xl font-bold mb-4 text-center">
+            Gra zakończona!
+          </h2>
+          <p className="text-center mb-4">
+            Zwycięzca: <strong>{winnerName}</strong> z {winner.score} punktami.
+          </p>
+          <div className="text-center">
+            <Button color="blue" onClick={() => router.push("/scrabble/lobby")}>
+              Powrót do lobby
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   const currentPlayerIndex = gameData.currentPlayer;
   const isCurrentPlayer = lobby.players[currentPlayerIndex]?.uid === user.uid;
   const playerTiles =
     gameData.playerTiles.find((pt) => pt.uid === user.uid)?.tiles || [];
-  const remainingTilesCount = gameData.remainingTiles?.length || 0;
+  const remainingTilesCount = Object.values(
+    gameData.remainingTiles || {}
+  ).reduce((sum, c) => sum + c, 0);
 
   // Obliczenie, ile razy dana litera jest użyta w obecnym ruchu
   const usedInCurrentMove = currentMove.reduce((acc, t) => {
@@ -276,8 +257,7 @@ export default function ScrabbleGame() {
   }, {});
 
   return (
-    // Użycie min-h-screen i p-4/p-8 z oryginalnego kodu, ale w połączeniu z elastycznym układem
-    <div className="min-h-screen bg-gray-900 text-gray-100 p-4 md:p-8 flex flex-col">
+    <div className=" bg-gray-900 text-gray-100 flex flex-col">
       <div className="max-w-7xl mx-auto w-full flex-grow flex flex-col">
         {/* Nagłówek (niezmieniony) */}
         <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2 flex-shrink-0">
@@ -285,7 +265,9 @@ export default function ScrabbleGame() {
             <h1 className="text-3xl font-bold text-white tracking-wide">
               Scrabble <span className="text-blue-500">Online</span>
             </h1>
-            <Badge color="info">Worek: {remainingTilesCount} liter</Badge>
+            <Badge color="light" className="text-gray-900">
+              Worek: {remainingTilesCount} liter
+            </Badge>
           </div>
           <Button
             color="failure"
@@ -307,9 +289,9 @@ export default function ScrabbleGame() {
         {/* GŁÓWNY KONTENER GRY - Musi zajmować resztę miejsca (flex-1) */}
         <div className="flex-1 flex flex-col lg:flex-row gap-8 overflow-hidden">
           {/* Sekcja Planszy - musi być elastyczna i zajmować dostępną przestrzeń */}
-          <div className="flex-1 flex justify-center items-center bg-gray-800/50 p-2 rounded-xl border border-gray-700 shadow-xl min-h-[300px] lg:min-h-0">
+          <div className="flex-1 flex justify-center items-center bg-gray-800/50 p-2 rounded-xl border border-gray-700 shadow-xl max-h-[75vh] max-w-[38vw]">
             {/* Wrapper, który zapewni kwadratowy kształt planszy w dostępnym miejscu */}
-            <div className="aspect-square w-full h-full max-w-[100%] max-h-[100%]">
+            <div className="aspect-square w-full h-full max-w-[100%] ">
               <ScrabbleBoard
                 board={gameData.board}
                 currentMove={currentMove || []}
@@ -360,9 +342,15 @@ export default function ScrabbleGame() {
                               isActive ? "text-blue-200" : "text-gray-300"
                             }`}
                           >
-                            {player.nickname}
+                            {player.displayName ||
+                              player.nickname ||
+                              player.uid}
                           </span>
-                          {isActive && <Badge color="info">Ruch</Badge>}
+                          {isActive && (
+                            <Badge color="light" className="text-gray-900">
+                              Ruch
+                            </Badge>
+                          )}
                         </div>
                         {isActive && isCurrentPlayer && (
                           <span className="text-xs text-blue-300 mt-1">
@@ -394,28 +382,20 @@ export default function ScrabbleGame() {
 
                 <div className="flex gap-2 justify-center flex-wrap py-2">
                   {playerTiles.map((letter, idx) => {
-                    // Liczba instancji tej litery w ręce
                     const totalInHand = playerTiles.filter(
                       (l) => l === letter
                     ).length;
-                    // Liczba instancji tej litery użyta w obecnym ruchu
                     const usedOnBoard = usedInCurrentMove[letter] || 0;
-
-                    // Czy wybranie tej litery przekroczy limit?
-                    // Jest to prosta wizualizacja. W `submitMove` jest twarda walidacja.
                     const isFullyUsed = usedOnBoard >= totalInHand;
                     const isSelected = selectedTile === letter;
 
                     return (
                       <button
                         key={idx}
-                        // Wizualnie blokujemy TYLKO wtedy, gdy wybrana jest już inna litera i ta konkretna litera jest już wykorzystana.
-                        // UWAGA: Trudno jest śledzić pojedyncze kafelki bez unikalnych ID, więc polegamy na ogólnej liczbie.
-                        // Lepsza wizualizacja wymagałaby zmiany struktury `playerTiles` na `{ id: string, letter: string }[]`.
-                        // Na razie polegamy na logice walidacji w `submitMove`.
-                        onClick={() =>
-                          setSelectedTile(isSelected ? null : letter)
-                        }
+                        onClick={() => {
+                          if (isFullyUsed && !isSelected) return;
+                          setSelectedTile(isSelected ? null : letter);
+                        }}
                         className={`
                           w-10 h-10 md:w-12 md:h-12 flex flex-col items-center justify-center rounded-md text-lg font-bold shadow-sm transition-transform leading-none
                           ${
@@ -432,7 +412,7 @@ export default function ScrabbleGame() {
                       >
                         {letter}
                         <span className="text-[8px] font-normal opacity-70">
-                          {TILE_CONFIG[letter]?.points}
+                          {POLISH_TILES[letter]?.points}
                         </span>
                       </button>
                     );
@@ -453,11 +433,15 @@ export default function ScrabbleGame() {
                     color="blue"
                     size="lg"
                     onClick={submitMove}
-                    isProcessing={isValidating}
                     disabled={!currentMove.length || isValidating}
                     className="w-full font-bold shadow-blue-900/50 shadow-lg"
                   >
-                    Zatwierdź ruch ({calculatePoints(currentMove)} pkt)
+                    <div className="flex items-center justify-center gap-2 w-full">
+                      {isValidating && <Spinner size="sm" color="info" />}
+                      <span>
+                        Zatwierdź ruch ({calculatePoints(currentMove)} pkt)
+                      </span>
+                    </div>
                   </Button>
                   <Button
                     color="gray"

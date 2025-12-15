@@ -10,10 +10,9 @@ import Link from "next/link";
 import { FaKey, FaSave } from "react-icons/fa";
 
 export default function ProfileForm() {
-  const { user, nickname, updateNickname } = useAuth();
+  const { user, displayName: ctxDisplayName, updateDisplayName } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [photoURL, setPhotoURL] = useState("");
-  const [userNickname, setUserNickname] = useState("");
 
   // Pola adresowe
   const [city, setCity] = useState("");
@@ -39,7 +38,8 @@ export default function ProfileForm() {
 
           if (snapshot.exists()) {
             const data = snapshot.data();
-            setUserNickname(data.nickname || "");
+            // keep displayName in sync if stored in firestore
+            if (data.displayName) setDisplayName(data.displayName);
             if (data.address) {
               setCity(data.address.city || "");
               setStreet(data.address.street || "");
@@ -70,18 +70,22 @@ export default function ProfileForm() {
         photoURL: photoURL,
       });
 
-      // Aktualizacja danych w Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        nickname: userNickname,
-        address: {
-          city: city,
-          street: street,
-          zipCode: zipCode,
+      // Aktualizacja danych w Firestore (zapisujemy displayName zamiast nickname)
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          displayName: displayName,
+          address: {
+            city: city,
+            street: street,
+            zipCode: zipCode,
+          },
         },
-      }, { merge: true });
+        { merge: true }
+      );
 
-      // Aktualizuj nickname w kontekście
-      await updateNickname(userNickname);
+      // Aktualizuj displayName w kontekście
+      await updateDisplayName(displayName);
 
       setSuccess("Profil został zaktualizowany!");
       console.log("Profile and address updated");
@@ -135,16 +139,7 @@ export default function ProfileForm() {
             />
           </div>
 
-          <div>
-            <Label htmlFor="nickname" value="Pseudonim" />
-            <TextInput
-              id="nickname"
-              type="text"
-              value={userNickname}
-              onChange={(e) => setUserNickname(e.target.value)}
-              placeholder="Twój pseudonim w grach"
-            />
-          </div>
+          {/* Pole `nickname` usunięte — używamy `displayName` zamiast pseudonimu */}
 
           <div>
             <Label htmlFor="email" value="Email" />

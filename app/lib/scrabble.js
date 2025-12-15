@@ -38,25 +38,33 @@ export const POLISH_TILES = {
 // Rozmiar planszy
 export const BOARD_SIZE = 15;
 
-// Tworzenie puli płytek
+// Tworzenie puli płytek jako obiekt z ilościami
 export function createTileBag() {
-  const tiles = [];
+  const tiles = {};
   Object.entries(POLISH_TILES).forEach(([letter, { count }]) => {
-    for (let i = 0; i < count; i++) {
-      tiles.push(letter);
-    }
+    tiles[letter] = count;
   });
-  // Tasowanie
-  return tiles.sort(() => Math.random() - 0.5);
+  return tiles;
 }
 
-// Losowanie liter dla gracza
+// Losowanie liter dla gracza - zwraca tablicę liter i aktualizuje worek
 export function drawTiles(tileBag, count = 7) {
   const drawn = [];
-  for (let i = 0; i < count && tileBag.length > 0; i++) {
-    drawn.push(tileBag.pop());
+  const newBag = { ...tileBag };
+  const availableLetters = Object.keys(newBag).filter(
+    (letter) => newBag[letter] > 0
+  );
+
+  for (let i = 0; i < count && availableLetters.length > 0; i++) {
+    const randomIndex = Math.floor(Math.random() * availableLetters.length);
+    const letter = availableLetters[randomIndex];
+    drawn.push(letter);
+    newBag[letter]--;
+    if (newBag[letter] === 0) {
+      availableLetters.splice(randomIndex, 1);
+    }
   }
-  return drawn;
+  return { drawn, newBag };
 }
 
 // Obliczanie punktów za słowo
