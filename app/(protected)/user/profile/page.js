@@ -3,21 +3,55 @@
 import { useState, useEffect } from "react";
 import { updateProfile } from "firebase/auth";
 import { useAuth } from "@/app/lib/AuthContext";
-import { Button, Label, TextInput, Card, Alert } from "flowbite-react";
+import { db } from "@/app/lib/firebase";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { Button, Label, TextInput, Card, Alert, Spinner } from "flowbite-react";
 
 export default function ProfileForm() {
   const { user } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [photoURL, setPhotoURL] = useState("");
+  
+  // Pola adresowe
+  const [city, setCity] = useState("");
+  const [street, setStreet] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  // Wypełnij formularz danymi użytkownika
+  // Pobierz dane użytkownika z Auth i Firestore
   useEffect(() => {
-    if (user) {
-      setDisplayName(user.displayName || "");
-      setPhotoURL(user.photoURL || "");
-    }
+    const fetchUserData = async () => {
+      if (user) {
+        // Dane z Authentication
+        setDisplayName(user.displayName || "");
+        setPhotoURL(user.photoURL || "");
+
+        // Dane z Firestore
+        try {
+          const docRef = doc(db, "users", user.uid);
+          const snapshot = await getDoc(docRef);
+          
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (data.address) {
+              setCity(data.address.city || "");
+              setStreet(data.address.street || "");
+              setZipCode(data.address.zipCode || "");
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+          setError("Błąd pobierania danych: " + err.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchUserData();
   }, [user]);
 
   const handleSubmit = async (e) => {
@@ -26,20 +60,43 @@ export default function ProfileForm() {
     setSuccess("");
 
     try {
+      // Aktualizacja profilu w Authentication
       await updateProfile(user, {
         displayName: displayName,
         photoURL: photoURL,
       });
+
+      // Aktualizacja adresu w Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        address: {
+          city: city,
+          street: street,
+          zipCode: zipCode
+        }
+      });
+
       setSuccess("Profil został zaktualizowany!");
-      console.log("Profile updated");
+      console.log("Profile and address updated");
     } catch (err) {
-      setError(err.message);
+      if (err.code === "permission-denied") {
+        setError("Brak uprawnień do zapisu danych!");
+      } else {
+        setError("Błąd: " + err.message);
+      }
       console.error(err);
     }
   };
 
   if (!user) {
-    return <div>Ładowanie...</div>;
+    return <div className="text-center p-8">Ładowanie...</div>;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[80vh]">
+        <Spinner size="xl" />
+      </div>
+    );
   }
 
   return (
@@ -47,7 +104,7 @@ export default function ProfileForm() {
       <Card className="w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4">Profil użytkownika</h2>
 
-        {/* Zdjęcie profilowe - warunkowe renderowanie */}
+        {/* Zdjęcie profilowe */}
         {user.photoURL && (
           <div className="flex justify-center mb-4">
             <img
@@ -91,6 +148,44 @@ export default function ProfileForm() {
               onChange={(e) => setPhotoURL(e.target.value)}
               placeholder="https://example.com/photo.jpg"
             />
+          </div>
+
+          {/* Sekcja adresu */}
+          <div className="border-t pt-4 mt-2">
+            <h3 className="text-lg font-semibold mb-3">Adres</h3>
+
+            <div className="mb-3">
+              <Label htmlFor="street" value="Ulica" />
+              <TextInput
+                id="street"
+                type="text"
+                value={street}
+                onChange={(e) => setStreet(e.target.value)}
+                placeholder="ul. Przykładowa 1"
+              />
+            </div>
+
+            <div className="mb-3">
+              <Label htmlFor="city" value="Miasto" />
+              <TextInput
+                id="city"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Kraków"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="zipCode" value="Kod pocztowy" />
+              <TextInput
+                id="zipCode"
+                type="text"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+                placeholder="00-000"
+              />
+            </div>
           </div>
 
           {/* Alert z błędem */}

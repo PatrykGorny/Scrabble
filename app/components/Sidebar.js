@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/app/lib/AuthContext";
-import { FaHome, FaUser, FaSignInAlt, FaUserPlus, FaKey, FaSignOutAlt } from "react-icons/fa";
+import { FaHome, FaUser, FaSignInAlt, FaUserPlus, FaKey, FaSignOutAlt, FaNewspaper } from "react-icons/fa";
 
 export default function Sidebar() {
   const { user } = useAuth();
@@ -35,7 +35,14 @@ export default function Sidebar() {
               <FaUser size={20} />
               <span>Profil</span>
             </Link>
-
+               <Link 
+              href="/scrabble" 
+              className="flex items-center gap-3 p-3 rounded hover:bg-gray-700 transition"
+            >
+              <FaUser size={20} />
+              <span>Scrabble</span>
+            </Link>
+  
             <Link 
               href="/user/changepassword" 
               className="flex items-center gap-3 p-3 rounded hover:bg-gray-700 transition"
