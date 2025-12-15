@@ -10,9 +10,10 @@ import Link from "next/link";
 import { FaKey, FaSave } from "react-icons/fa";
 
 export default function ProfileForm() {
-  const { user } = useAuth();
+  const { user, nickname, updateNickname } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [photoURL, setPhotoURL] = useState("");
+  const [userNickname, setUserNickname] = useState("");
 
   // Pola adresowe
   const [city, setCity] = useState("");
@@ -38,6 +39,7 @@ export default function ProfileForm() {
 
           if (snapshot.exists()) {
             const data = snapshot.data();
+            setUserNickname(data.nickname || "");
             if (data.address) {
               setCity(data.address.city || "");
               setStreet(data.address.street || "");
@@ -68,14 +70,18 @@ export default function ProfileForm() {
         photoURL: photoURL,
       });
 
-      // Aktualizacja adresu w Firestore
+      // Aktualizacja danych w Firestore
       await setDoc(doc(db, "users", user.uid), {
+        nickname: userNickname,
         address: {
           city: city,
           street: street,
           zipCode: zipCode,
         },
-      });
+      }, { merge: true });
+
+      // Aktualizuj nickname w kontekście
+      await updateNickname(userNickname);
 
       setSuccess("Profil został zaktualizowany!");
       console.log("Profile and address updated");
@@ -126,6 +132,17 @@ export default function ProfileForm() {
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Twoja nazwa"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="nickname" value="Pseudonim" />
+            <TextInput
+              id="nickname"
+              type="text"
+              value={userNickname}
+              onChange={(e) => setUserNickname(e.target.value)}
+              placeholder="Twój pseudonim w grach"
             />
           </div>
 

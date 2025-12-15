@@ -42,7 +42,7 @@ export default function Sidebar() {
               <span>Profil</span>
             </Link>
             <Link
-              href="/scrabble"
+              href="/scrabble/lobby"
               className="flex items-center gap-3 p-3 rounded hover:bg-gray-700 transition"
             >
               <FaUser size={20} />

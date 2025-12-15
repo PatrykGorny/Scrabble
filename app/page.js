@@ -20,7 +20,7 @@ export default function Home() {
           </p>
           <div className="flex justify-center">
             {user ? (
-              <Link href="/scrabble">
+              <Link href="/scrabble/lobby">
                 <Button
                   size="lg"
                   color="success"
