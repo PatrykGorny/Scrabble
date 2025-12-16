@@ -1,8 +1,6 @@
 import { AuthProvider } from "@/app/lib/AuthContext";
 import "./globals.css";
-import Sidebar from "./components/Sidebar";
-import TopBar from "./components/TopBar";
-import Footer from "./components/Footer";
+import ClientLayout from "./ClientLayout";
 
 export const metadata = {
   title: "Scrabble",
@@ -14,22 +12,7 @@ export default function RootLayout({ children }) {
     <html lang="pl">
       <body className="antialiased">
         <AuthProvider>
-          <div className="flex min-h-screen">
-            {/* Sidebar po lewej stronie */}
-            <Sidebar />
-
-            {/* Główna zawartość */}
-            <div className="flex flex-col flex-1">
-              {/* Górny pasek */}
-              <TopBar />
-
-              {/* Treść strony */}
-              <main className="flex-1 p-2 bg-gray-900">{children}</main>
-
-              {/* Stopka */}
-              <Footer />
-            </div>
-          </div>
+          <ClientLayout>{children}</ClientLayout>
         </AuthProvider>
       </body>
     </html>

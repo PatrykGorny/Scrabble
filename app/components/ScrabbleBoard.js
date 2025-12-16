@@ -110,7 +110,8 @@ const ScrabbleBoard = ({
     return (
       <div
         key={`${x}-${y}`}
-        className={`w-10 h-10 md:w-11 md:h-11 border border-gray-500 flex items-center justify-center relative ${bgClass} text-gray-800 shadow-sm cursor-pointer transition-all hover:scale-[1.02]`}
+        style={{ width: "var(--cell-size)", height: "var(--cell-size)" }}
+        className={`border border-gray-500 flex items-center justify-center relative ${bgClass} text-gray-800 shadow-sm cursor-pointer transition-all hover:scale-[1.02]`}
         onClick={() => {
           if (currentTile) {
             const index = currentMove.findIndex(
@@ -125,7 +126,13 @@ const ScrabbleBoard = ({
         {/* Stały kafelek (już położony) */}
         {placedTile && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-sm bg-[#fdf5e6] border border-gray-400 shadow-inner flex flex-col items-center justify-center text-gray-900 font-bold text-sm">
+            <div
+              style={{
+                width: "calc(var(--cell-size) - 0.5rem)",
+                height: "calc(var(--cell-size) - 0.5rem)",
+              }}
+              className="rounded-sm bg-[#fdf5e6] border border-gray-400 shadow-inner flex flex-col items-center justify-center text-gray-900 font-bold text-sm"
+            >
               {placedTile}
             </div>
           </div>
@@ -134,7 +141,13 @@ const ScrabbleBoard = ({
         {/* Tymczasowy kafelek (w trakcie ruchu) */}
         {currentTile && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-sm bg-white border-2 border-blue-500 shadow-md flex flex-col items-center justify-center text-blue-700 font-bold text-sm animate-pulse">
+            <div
+              style={{
+                width: "calc(var(--cell-size) - 0.5rem)",
+                height: "calc(var(--cell-size) - 0.5rem)",
+              }}
+              className="rounded-sm bg-white border-2 border-blue-500 shadow-md flex flex-col items-center justify-center text-blue-700 font-bold text-sm animate-pulse"
+            >
               {currentTile.letter}
             </div>
           </div>
@@ -144,12 +157,12 @@ const ScrabbleBoard = ({
   };
 
   return (
-    <div className="inline-block bg-gradient-to-br from-amber-900 to-amber-800 p-3 rounded-xl shadow-2xl">
+    <div className="inline-block bg-gradient-to-br from-amber-900 to-amber-800 p-3 rounded-xl shadow-2xl overflow-auto scrabble-board">
       <div
         className="grid gap-0 border-4 border-amber-700 rounded-lg"
         style={{
-          gridTemplateColumns: "repeat(15, 2.75rem)",
-          gridTemplateRows: "repeat(15, 2.75rem)",
+          gridTemplateColumns: "repeat(15, var(--cell-size))",
+          gridTemplateRows: "repeat(15, var(--cell-size))",
           background: "#d0b49f",
         }}
       >

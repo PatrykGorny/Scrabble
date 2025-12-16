@@ -3,15 +3,24 @@
 import Link from "next/link";
 import { useAuth } from "@/app/lib/AuthContext";
 import { Button } from "flowbite-react";
-import { FaSignInAlt, FaUserPlus, FaSignOutAlt } from "react-icons/fa";
+import { FaSignInAlt, FaUserPlus, FaSignOutAlt, FaBars } from "react-icons/fa";
 
-export default function TopBar() {
+export default function TopBar({ setMobileOpen }) {
   const { user } = useAuth();
 
   return (
     <header className="bg-gray-800 text-white shadow-sm p-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold"> Scrabble </h1>
+        <div className="flex items-center gap-3">
+          <button
+            className="md:hidden p-2 rounded hover:bg-gray-700"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Otwórz menu"
+          >
+            <FaBars />
+          </button>
+          <h1 className="text-xl font-bold"> Scrabble </h1>
+        </div>
 
         <div className="flex gap-3 items-center">
           {!user ? (

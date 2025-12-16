@@ -16,7 +16,7 @@ import {
   FaGamepad,
 } from "react-icons/fa";
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen, setMobileOpen }) {
   const { user } = useAuth();
   const [currentGameId, setCurrentGameId] = useState(null);
 
@@ -44,10 +44,10 @@ export default function Sidebar() {
     return () => unsubscribe();
   }, [user]);
 
-  return (
-    <aside className="w-64 bg-gray-800 text-white min-h-screen p-4">
+  const NavContent = (
+    <>
       <div className="mb-8">
-        <h2 className="text-2xl font-bold">Menu</h2>
+        <h2 className="text-2xl font-bold"></h2>
       </div>
 
       <nav className="space-y-2">
@@ -89,6 +89,47 @@ export default function Sidebar() {
           </>
         )}
       </nav>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:block w-64 bg-gray-800 text-white min-h-screen p-4">
+        {NavContent}
+      </aside>
+
+      {/* Mobile drawer */}
+      <div
+        className={`fixed inset-0 z-40 md:hidden ${
+          mobileOpen ? "" : "pointer-events-none"
+        }`}
+        aria-hidden={!mobileOpen}
+      >
+        <div
+          className={`fixed inset-0 bg-black/50 transition-opacity ${
+            mobileOpen ? "opacity-100" : "opacity-0"
+          }`}
+          onClick={() => setMobileOpen(false)}
+        />
+
+        <aside
+          className={`fixed left-0 top-0 bottom-0 w-64 bg-gray-800 p-4 transform transition-transform ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold">Menu</h2>
+            <button
+              className="text-white text-xl"
+              onClick={() => setMobileOpen(false)}
+            >
+              ✕
+            </button>
+          </div>
+          {NavContent}
+        </aside>
+      </div>
+    </>
   );
 }

@@ -287,11 +287,11 @@ export default function ScrabbleGame() {
         </div>
 
         {/* GŁÓWNY KONTENER GRY - Musi zajmować resztę miejsca (flex-1) */}
-        <div className="flex-1 flex flex-col lg:flex-row gap-8 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row gap-8">
           {/* Sekcja Planszy - musi być elastyczna i zajmować dostępną przestrzeń */}
-          <div className="flex-1 flex justify-center items-center bg-gray-800/50 p-2 rounded-xl border border-gray-700 shadow-xl max-h-[75vh] max-w-[38vw]">
+          <div className="flex-1 flex justify-center items-center bg-gray-800/50 p-2 rounded-xl border border-gray-700 shadow-xl max-h-[75vh] w-full lg:max-w-[38vw]">
             {/* Wrapper, który zapewni kwadratowy kształt planszy w dostępnym miejscu */}
-            <div className="aspect-square w-full h-full max-w-[100%] ">
+            <div className="aspect-square w-full h-full max-w-full max-h-[60vh] lg:max-h-none">
               <ScrabbleBoard
                 board={gameData.board}
                 currentMove={currentMove || []}
