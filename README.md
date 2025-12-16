@@ -1,142 +1,54 @@
 # Polish Scrabble Online
 
-A web-based implementation of Scrabble adapted for Polish language rules, built with Next.js and Firebase.
+A web-based implementation of Scrabble adapted for Polish language rules.
+
+🎮 **[Play Live](https://scrabble-game.example.com)**
 
 ## Features
 
-- **User Authentication**: Secure login and registration using Firebase Authentication
-- **Lobby System**: Create and join game lobbies with real-time updates
-- **Polish Scrabble Rules**:
-  - Polish letter distribution and point values
-  - Proper tile bag management (counts instead of arrays for efficiency)
-  - Game ends when tile bag is empty and a player cannot draw to 7 tiles
-- **Real-time Gameplay**: Live game state synchronization with Firestore
-- **Responsive Design**: Dark-themed UI with Tailwind CSS and Flowbite components
-- **Game Features**:
-  - Place tiles on the board
-  - Word validation (placeholder - integrate with Polish dictionary API)
-  - Scoring with bonus squares
-  - Turn-based gameplay
-  - Surrender option
-- **Multi-browser Support**: Play from multiple devices/browsers
-- **Automated Testing**: Playwright tests for key functionalities
+- User authentication and lobby system
+- Polish letter distribution and scoring
+- Real-time multiplayer gameplay
+- Word validation with Polish dictionary
+- Responsive dark-themed interface
+- Turn-based gameplay with surrender option
 
-## Tech Stack
+## Quick Start
 
-- **Frontend**: Next.js 14 (App Router), React
-- **Styling**: Tailwind CSS, Flowbite React
-- **Backend**: Firebase (Authentication, Firestore)
-- **Testing**: Playwright
-- **Linting**: ESLint
-- **Build Tool**: Next.js with Turbopack
-
-## Prerequisites
-
-- Node.js 18+
-- npm or yarn
-- Firebase project with Authentication and Firestore enabled
-
-## Installation
-
-1. Clone the repository:
-
+1. Clone and install:
    ```bash
    git clone <repository-url>
    cd project
-   ```
-
-2. Install dependencies:
-
-   ```bash
    npm install
    ```
 
-3. Set up Firebase:
-
+2. Configure Firebase:
    - Create a Firebase project
-   - Enable Authentication (Email/Password)
-   - Enable Firestore
-   - Copy your Firebase config to `app/lib/firebase.js`
+   - Enable Authentication and Firestore
+   - Add your config to `app/lib/firebase.js`
 
-4. Configure environment variables (if needed):
-   - Update any API keys or configurations
-
-## Usage
-
-1. Start the development server:
-
+3. Run locally:
    ```bash
    npm run dev
    ```
+   Open [http://localhost:3000](http://localhost:3000)
 
-2. Open [http://localhost:3000](http://localhost:3000) in your browser
+## Game Rules
 
-3. Register/Login to access the game
-
-4. Create or join a lobby from the Scrabble section
-
-5. Play the game following Polish Scrabble rules
-
-## Game Rules (Polish Adaptation)
-
-- Standard Scrabble rules with Polish letter set
-- 15x15 board with bonus squares
-- Players draw 7 tiles initially
-- Place words horizontally or vertically
-- Score based on letter values and bonus squares
-- Game continues until tile bag is empty
-- When bag is empty, if a player has fewer than 7 tiles, the game ends
-- Winner is the player with the highest score
-
-## Project Structure
-
-```
-project/
-├── app/
-│   ├── (protected)/          # Auth-protected routes
-│   │   ├── scrabble/
-│   │   │   ├── game/[id]/    # Game page
-│   │   │   ├── lobby/        # Lobby list and detail
-│   │   │   └── ...
-│   ├── (public)/             # Public routes (signin, register)
-│   ├── components/           # Reusable components
-│   ├── lib/                  # Utilities and Firebase config
-│   └── globals.css
-├── tests/                    # Playwright tests
-├── playwright.config.js
-└── package.json
-```
+Standard Scrabble rules adapted for Polish:
+- 15×15 board with bonus squares
+- 7 tiles per player
+- Words placed horizontally or vertically
+- Game ends when tile bag is empty
 
 ## Testing
 
-Run the test suite:
-
 ```bash
+npm install --save-dev @playwright/test
+npx playwright install
 npx playwright test
 ```
 
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Known Issues / TODO
-
-- Word validation is placeholder - integrate with Polish dictionary API
-- Add more comprehensive game validation
-- Implement chat functionality
-- Add game statistics and history
-
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Based on traditional Scrabble game rules
-- Adapted for Polish language
-- Built with modern web technologies
+MIT License
